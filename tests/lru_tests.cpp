@@ -92,20 +92,26 @@ void register_lru_tests(TestRegistry& r) {
     });
 
     r.add("LRUOrderAfterDeletes", [](){
-        // Delete a key that is not the LRU.  The LRU should remain correct.
-        // Capacity 3: a(LRU) → b → c(MRU)
-        // Delete b.  Now a(LRU) → c(MRU).
-        // Insert d → evicts a.
+        // Delete a key that is NOT the LRU.  After the delete, the correct
+        // LRU ordering must still be maintained.
+        //
+        // Capacity 3: insert a, b, c → order [c(MRU), b, a(LRU)]
+        // Delete b (middle node) → order [c(MRU), a(LRU)], size=2
+        // Insert d → size=3, no eviction yet (still room)
+        // Insert e → evicts a (the LRU)
         LRUCache cache(3, 0);
-        cache.set("a", "1");
-        cache.set("b", "2");
-        cache.set("c", "3");
-        cache.remove("b");       // delete middle node
-        cache.set("d", "4");    // should evict a
+        cache.set("a", "1");   // LRU: [a]
+        cache.set("b", "2");   // LRU: [b, a]
+        cache.set("c", "3");   // LRU: [c, b, a]
+        cache.remove("b");     // delete middle node → [c, a], size=2
+        cache.set("d", "4");   // insert → [d, c, a], size=3 (full again)
+        cache.set("e", "5");   // insert → evicts a (LRU) → [e, d, c]
 
-        TEST_ASSERT_FALSE(cache.get("a").has_value());  // evicted
-        TEST_ASSERT_FALSE(cache.get("b").has_value());  // deleted
+        TEST_ASSERT_FALSE(cache.get("a").has_value());  // evicted (was LRU)
+        TEST_ASSERT_FALSE(cache.get("b").has_value());  // deleted explicitly
         TEST_ASSERT(cache.get("c").has_value());
         TEST_ASSERT(cache.get("d").has_value());
+        TEST_ASSERT(cache.get("e").has_value());
+        TEST_ASSERT_EQ(cache.stats().evictions.load(), uint64_t(1));
     });
 }
