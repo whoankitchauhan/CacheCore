@@ -467,15 +467,30 @@ Each configuration pre-populates 5,000 keys, resets stats, then measures through
 
 ### Actual Benchmark Results
 
-> **Run `./build/cachecore_bench` on your machine to see real numbers.**
-> Results below are machine-specific and will differ on your hardware.
+> Results measured on the development machine (Windows, GCC 14.2.0, Release build).
+> Numbers will vary with CPU, OS scheduler, and memory speed.
 
-Results are printed by the benchmark after actual measurement. They are never hardcoded.
+```
+Cache capacity : 10000 keys
+Ops per thread : 200000
+Read ratio     : 75% GET  25% SET
+Key space      : 20000 (2× capacity)
 
-The benchmark intentionally highlights the **single-mutex contention** behaviour:
-- 1 thread: maximum per-thread throughput (no contention)
-- Higher thread counts: throughput increases initially, then plateaus or drops as mutex becomes the bottleneck
-- This demonstrates why production caches use sharded locks or lock-free structures for high concurrency
+Threads   Total Ops    Time (s)   Ops/sec        Hits       Misses     Evictions
+----------------------------------------------------------------------------------
+1         200000       0.055      3,650,701      71,942     78,127     20,794
+4         800000       0.432      1,852,568     296,603    303,462     96,126
+8         1600000      0.844      1,896,366     596,178    603,700    195,463
+16        3200000      1.946      1,644,645   1,196,232  1,203,500    395,893
+32        6400000      3.778      1,693,912   2,396,419  2,403,582    796,274
+```
+
+**Key observations:**
+- **1 thread:** ~3.6M ops/sec — baseline, zero lock contention
+- **4→8 threads:** throughput holds near 1.85–1.9M ops/sec total; the single mutex begins serializing threads
+- **16→32 threads:** throughput plateau; mutex contention dominates; adding more threads does not increase total ops/sec
+
+This illustrates exactly why production systems (Redis single-threaded, memcached with per-slab locks, etc.) use different concurrency strategies than a single global mutex.
 
 ---
 
