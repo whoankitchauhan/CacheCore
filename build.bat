@@ -1,7 +1,7 @@
 @echo off
 :: build.bat — convenience build script for CacheCore on Windows
 :: Requires:  CMake (installed at C:\Program Files\CMake\bin)
-::            w64devkit (extracted at %USERPROFILE%\Desktop\w64devkit)
+::            w64devkit (installed at C:\w64devkit)
 ::
 :: Usage:
 ::   build.bat          -> Release build
@@ -13,7 +13,7 @@
 setlocal
 
 set "CMAKE=C:\Program Files\CMake\bin\cmake.exe"
-set "W64=%USERPROFILE%\Desktop\w64devkit\bin"
+set "W64=C:\w64devkit\bin"
 set "PATH=%W64%;%PATH%"
 set "BUILD_TYPE=Release"
 set "BUILD_DIR=build"
